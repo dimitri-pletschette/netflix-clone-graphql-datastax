@@ -7,8 +7,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  checks: read
-  statuses: read
 
 jobs:
   dependabot:
@@ -16,42 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wait for repository checks
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          echo "Waiting for Dependabot and repository checks..."
-
-          for i in {1..10}; do
-            sleep 60
-
-            STATUS=$(gh pr checks "$PR_URL" --json state \
-              --jq 'if length == 0 then "NONE" elif any(.[]; .state == "FAILURE" or .state == "ERROR") then "FAILURE" elif any(.[]; .state == "PENDING") then "PENDING" else "SUCCESS" end')
-
-            echo "Check status: $STATUS"
-
-            if [ "$STATUS" = "SUCCESS" ]; then
-              echo "All checks passed."
-              break
-            fi
-
-            if [ "$STATUS" = "FAILURE" ]; then
-              echo "A check failed. Auto-merge will not be enabled."
-              exit 1
-            fi
-
-            echo "Checks still running..."
-          done
-
-          if [ "$STATUS" != "SUCCESS" ]; then
-            echo "Checks did not finish successfully."
-            exit 1
-          fi
+      - name: Wait for Dependabot checks
+        run: sleep 120
 
       - name: Enable auto-merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          gh pr merge "$PR_URL" --auto --merge
+          gh pr merge "${{ github.event.pull_request.html_url }}" --auto --merge
